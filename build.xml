@@ -7,6 +7,7 @@
     <property name="lib.dir"        value="${basedir}/vendor/lib"/>
     <property name="jslib.dir"      value="${basedir}/vendor/jslib"/>
     <property name="buildlib.dir"   value="${basedir}/vendor/buildlib"/>
+    <property name="libsrc.dir"     value="${basedir}/vendor/src"/>
 
     <tstamp><format property="build.number" pattern="yyyyMMddHHmmss" timezone="GMT"/></tstamp>
     <tstamp><format property="build.timestamp" pattern="yyyy-MM-dd HH:mm:ss" timezone="GMT"/></tstamp>
@@ -49,6 +50,7 @@
     <target name="version" depends="version-for-snapshot,version-for-release">
         <echo message="Building version ${version.label}"/>
         <property name="main.jar" value="${build.dir}/ci-eye-${version.label}.jar"/>
+        <property name="main.sources.jar" value="${build.dir}/ci-eye-${version.label}-sources.jar"/>
         <property name="test.jar" value="${build.dir}/ci-eye-tests-${version.label}.jar"/>
     </target>
 
@@ -112,8 +114,21 @@
             </manifest>
         </jar>
     </target>
+	
+	<target name="sources-main" depends="jar-main">
+        <zip destfile="${build.dir}/main-sources.jar">
+            <zipgroupfileset dir="${libsrc.dir}">
+                <include name="*.jar"/>
+                <include name="*.zip"/>
+            </zipgroupfileset>
+        </zip>
+		<jar destfile="${main.sources.jar}">
+			<fileset dir="${basedir}/src/main/java" includes="**/*.java"/>
+			<zipfileset src="${build.dir}/main-sources.jar" includes="**/*.java"/>
+		</jar>
+	</target>
 
-    <target name="jar" description="Create jar files" depends="jar-main,jar-test"/>
+    <target name="jar" description="Create jar files" depends="jar-main,jar-test,sources-main"/>
 
     <target name="test" description="Test this project" depends="jar">
         <mkdir dir="${build.dir}/testreport"/>
