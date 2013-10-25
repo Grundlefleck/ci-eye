@@ -6,15 +6,23 @@ public final class Feature {
 
     private final String name;
     private final String endpoint;
-    private final CiServerType type; 
+    private final CiServerType type;
+    private final String username;
+    private final String password; 
     
     public Feature(String name, String endpoint, CiServerType type) {
+        this(name, endpoint, type, null, null);
+    }
+
+    public Feature(String name, String endpoint, CiServerType type, String username, String password) {
         Preconditions.checkNotNull(name);
         Preconditions.checkNotNull(endpoint);
         Preconditions.checkNotNull(type);
         this.name = name;
         this.endpoint = endpoint;
         this.type = type;
+        this.username = (null == username) ? "" : username;
+        this.password = (null == password) ? "" : password;
     }
     
     public String name() {
@@ -29,6 +37,14 @@ public final class Feature {
         return type;
     }
     
+    public String username() {
+        return username;
+    }
+    
+    public String password() {
+        return password;
+    }
+    
     @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof Feature)) {
@@ -36,7 +52,11 @@ public final class Feature {
         }
         
         final Feature other = (Feature)obj;
-        return other.name.equals(name) && other.endpoint.equals(endpoint) && other.type.equals(type);
+        return other.name.equals(name)
+                && other.endpoint.equals(endpoint)
+                && other.type.equals(type)
+                && other.username.equals(username)
+                && other.password.equals(password);
     }
     
     @Override

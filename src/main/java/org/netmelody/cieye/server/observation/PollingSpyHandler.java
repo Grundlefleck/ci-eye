@@ -1,6 +1,5 @@
 package org.netmelody.cieye.server.observation;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -84,14 +83,15 @@ public final class PollingSpyHandler implements CiSpyHandler {
         final Iterable<Feature> features = transform(filter(requests.entrySet(), requestedAfter(cutoffTime)), toFeature());
         
         for (Feature feature : features) {
-            StatusResult intermediateStatus = statuses.putIfAbsent(feature, new StatusResult());
+            final TargetDigestGroup targets = trustedSpy.targetsConstituting(feature);
+            
+            StatusResult intermediateStatus = statuses.get(feature);
             if (null == intermediateStatus) {
-                intermediateStatus = new StatusResult();
+                intermediateStatus = new StatusResult(new TargetDetailGroup(targets));
+                statuses.putIfAbsent(feature, intermediateStatus);
             }
             
             final List<TargetDetail> newStatus = newArrayList();
-
-            final TargetDigestGroup targets = trustedSpy.targetsConstituting(feature);
             for (TargetDigest digest : targets) {
                 final TargetDetail target = trustedSpy.statusOf(digest.id());
                 newStatus.add(target);
@@ -119,9 +119,6 @@ public final class PollingSpyHandler implements CiSpyHandler {
         private final ImmutableMap<TargetId, TargetDetail> status;
         private final long timestamp;
 
-        public StatusResult() {
-            this(new ArrayList<TargetDetail>());
-        }
         public StatusResult(Iterable<TargetDetail> status) {
             this(Maps.uniqueIndex(status, toId()), System.currentTimeMillis());
         }

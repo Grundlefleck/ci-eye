@@ -18,6 +18,7 @@ import org.netmelody.cieye.spies.teamcity.jsondomain.BuildType;
 import org.netmelody.cieye.spies.teamcity.jsondomain.BuildTypeDetail;
 import org.netmelody.cieye.spies.teamcity.jsondomain.Change;
 import org.netmelody.cieye.spies.teamcity.jsondomain.ChangeDetail;
+import org.netmelody.cieye.spies.teamcity.jsondomain.Investigation;
 
 public final class BuildTypeAnalyser {
 
@@ -47,7 +48,7 @@ public final class BuildTypeAnalyser {
             runningBuilds.add(new RunningBuild(percentageOf(build.percentageComplete), buildDetail.status()));
         }
         
-        Status currentStatus = Status.GREEN;
+        Status currentStatus = Status.UNKNOWN;
         final Build lastCompletedBuild = communicator.lastCompletedBuildFor(buildTypeDetail);
         if (null != lastCompletedBuild) {
             currentStatus = lastCompletedBuild.status();
@@ -56,6 +57,13 @@ public final class BuildTypeAnalyser {
                 startTime = Math.max(buildDetail.startDateTime(), startTime);
                 sponsors.addAll(sponsorsOf(buildDetail));
                 currentStatus = buildDetail.status();
+            }
+        }
+        
+        if (Status.BROKEN.equals(currentStatus)) {
+            final List<Investigation> investigations = communicator.investigationsOf(buildType);
+            if (!investigations.isEmpty() && (investigations.get(0).startDateTime() > startTime) && investigations.get(0).underInvestigation()) {
+                currentStatus = Status.UNDER_INVESTIGATION;
             }
         }
         

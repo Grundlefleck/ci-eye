@@ -30,6 +30,11 @@ public final class JsonRestRequester implements Contact {
     }
 
     @Override
+    public boolean privileged() {
+        return channel.privileged();
+    }
+
+    @Override
     public <T> T makeJsonRestCall(String url, Class<T> type) {
         T result = null;
         String content = "";
@@ -42,7 +47,9 @@ public final class JsonRestRequester implements Contact {
         }
         
         if (null == result) {
-            LOG.warn("null result for json request: " + url);
+            if (null == content || content.isEmpty()) {
+                LOG.warn("null result for json request: " + url);
+            }
             try {
                 result = type.newInstance();
             }
@@ -68,11 +75,6 @@ public final class JsonRestRequester implements Contact {
         return (result == null) ? JsonNull.INSTANCE : result; 
     }
     
-    @Override
-    public void performBasicLogin(String loginUrl) {
-        channel.doGet(loginUrl);
-    }
-
     @Override
     public void doPost(String url) {
         channel.doPost(url);

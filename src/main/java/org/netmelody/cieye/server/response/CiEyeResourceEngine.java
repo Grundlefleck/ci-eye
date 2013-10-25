@@ -7,17 +7,17 @@ import org.netmelody.cieye.server.CiSpyAllocator;
 import org.netmelody.cieye.server.LandscapeFetcher;
 import org.netmelody.cieye.server.PictureFetcher;
 import org.netmelody.cieye.server.response.resource.CiEyeResource;
-import org.netmelody.cieye.server.response.resource.DohHandler;
-import org.netmelody.cieye.server.response.resource.NotFoundResource;
-import org.netmelody.cieye.server.response.resource.RedirectResource;
-import org.netmelody.cieye.server.response.resource.SponsorResource;
-import org.netmelody.cieye.server.response.resource.TargetNotationHandler;
 import org.netmelody.cieye.server.response.responder.CiEyeVersionResponder;
+import org.netmelody.cieye.server.response.responder.DohHandler;
 import org.netmelody.cieye.server.response.responder.FileResponder;
 import org.netmelody.cieye.server.response.responder.LandscapeListResponder;
 import org.netmelody.cieye.server.response.responder.LandscapeObservationResponder;
+import org.netmelody.cieye.server.response.responder.NotFoundResponder;
 import org.netmelody.cieye.server.response.responder.PictureResponder;
+import org.netmelody.cieye.server.response.responder.RedirectResponder;
 import org.netmelody.cieye.server.response.responder.SettingsLocationResponder;
+import org.netmelody.cieye.server.response.responder.SponsorResponder;
+import org.netmelody.cieye.server.response.responder.TargetNotationHandler;
 import org.simpleframework.http.Address;
 import org.simpleframework.http.resource.Resource;
 import org.simpleframework.http.resource.ResourceEngine;
@@ -44,54 +44,58 @@ public final class CiEyeResourceEngine implements ResourceEngine {
         this.allocator = allocator;
         this.updateChecker = updateChecker;
     }
-    
+
     @Override
     public Resource resolve(Address target) {
+        return new CiEyeResource(route(target));
+    }
+
+    private CiEyeResponder route(Address target) {
         final String[] path = target.getPath().getSegments();
         
         if (path.length == 0) {
-            return new CiEyeResource(new FileResponder("/resources/welcome.html"));
+            return new FileResponder("/resources/welcome.html");
         }
         
         if (path.length == 1) {
             if ("mugshotconfig.html".equals(path[0])) {
-                return new CiEyeResource(new FileResponder("/resources/mugshotconfig.html"));
+                return new FileResponder("/resources/mugshotconfig.html");
             }
             if ("landscapelist.json".equals(path[0])) {
-                return new CiEyeResource(new LandscapeListResponder(landscapeFetcher));
+                return new LandscapeListResponder(landscapeFetcher);
             }
             if ("settingslocation.json".equals(path[0])) {
-                return new CiEyeResource(new SettingsLocationResponder(configurationFetcher));
+                return new SettingsLocationResponder(configurationFetcher);
             }
             if ("version.json".equals(path[0])) {
-                return new CiEyeResource(new CiEyeVersionResponder(configurationFetcher, updateChecker));
+                return new CiEyeVersionResponder(configurationFetcher, updateChecker);
             }
             if ("sponsor.json".equals(path[0])) {
-                return new SponsorResource(tracker);
+                return new SponsorResponder(tracker);
             }
             
-            final FileResponder staticFile = new FileResponder("/resources/" + path[0]);
-            if (staticFile.exists()) {
-                return new CiEyeResource(staticFile);
+            final String name = "/resources/" + path[0];
+            if (null != getClass().getResource(name)) {
+                return new FileResponder(name);
             }
         }
         
         if (path.length == 2) {
             if ("pictures".equals(path[0])) {
-                return new CiEyeResource(new PictureResponder(pictureFetcher, path[1]));
+                return new PictureResponder(pictureFetcher, path[1]);
             }
             
             if ("landscapes".equals(path[0])) {
                 if (!target.getPath().getPath().endsWith("/")) {
-                    return new RedirectResource(target.getPath().getPath() + "/");
+                    return new RedirectResponder(target.getPath().getPath() + "/");
                 }
-                return new CiEyeResource(new FileResponder("/resources/cieye.html"));
+                return new FileResponder("/resources/cieye.html");
             }
         }
         
         if (path.length == 3) {
             if ("landscapes".equals(path[0]) && "landscapeobservation.json".equals(path[2])) {
-                return new CiEyeResource(new LandscapeObservationResponder(landscapeFetcher.landscapeNamed(path[1]), allocator, prison));
+                return new LandscapeObservationResponder(landscapeFetcher.landscapeNamed(path[1]), allocator, prison);
             }
             
             if ("landscapes".equals(path[0]) && "addNote".equals(path[2])) {
@@ -103,6 +107,6 @@ public final class CiEyeResourceEngine implements ResourceEngine {
             }
         }
         
-        return new NotFoundResource();
+        return new NotFoundResponder();
     }
 }

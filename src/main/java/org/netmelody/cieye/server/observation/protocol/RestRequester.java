@@ -23,7 +23,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.params.HttpParams;
@@ -37,21 +37,29 @@ public final class RestRequester implements GrapeVine {
     private static final Logbook LOG = LogKeeper.logbookFor(RestRequester.class);
     
     private final DefaultHttpClient client;
+    private final boolean privileged;
 
     public RestRequester(String username, String password) {
         final SchemeRegistry schemeRegistry = new SchemeRegistry();
         schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory.getSocketFactory()));
         schemeRegistry.register(new Scheme("https", 443, SSLSocketFactory.getSocketFactory()));
         
-        final ThreadSafeClientConnManager connectionManager = new ThreadSafeClientConnManager(schemeRegistry);
+        final PoolingClientConnectionManager connectionManager = new PoolingClientConnectionManager(schemeRegistry);
         connectionManager.setMaxTotal(200);
         connectionManager.setDefaultMaxPerRoute(20);
         
         final HttpParams params = new BasicHttpParams();
         params.setIntParameter(CoreConnectionPNames.SO_TIMEOUT, 30000);
         
+        privileged = !username.isEmpty();
+        
         client = new DefaultHttpClient(connectionManager, params);
         client.getCredentialsProvider().setCredentials(new AuthScope(null, -1), new UsernamePasswordCredentials(username, password));
+    }
+
+    @Override
+    public boolean privileged() {
+        return privileged;
     }
 
     @Override
@@ -73,7 +81,6 @@ public final class RestRequester implements GrapeVine {
         }
         catch (Exception e) {
             LOG.error(url, e);
-//            httpget.abort();
         }
         return "";
     }
@@ -132,10 +139,14 @@ public final class RestRequester implements GrapeVine {
         @Override
         public String handleResponse(HttpResponse response) {
             final HttpEntity entity = response.getEntity();
+            final int statusCode = response.getStatusLine().getStatusCode();
             try {
+                if (statusCode >= 300) {
+                    LOG.error("Failed to PUT/POST\n" + EntityUtils.toString(entity));
+                }
                 EntityUtils.consume(entity);
             } catch (IOException e) {
-                LOG.error("Failed to consume rsponse entity");
+                LOG.error("Failed to consume response entity");
             }
             return "";
         }

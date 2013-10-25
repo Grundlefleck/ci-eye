@@ -10,6 +10,7 @@ import org.netmelody.cieye.core.observation.KnownOffendersDirectory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import org.netmelody.cieye.server.configuration.avatar.PictureUrlRegistry;
 
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.getFirst;
@@ -24,6 +25,8 @@ public final class RecordedKnownOffenders implements KnownOffendersDirectory, Re
     
     private static final Pattern PICTURE_FILENAME_REGEX = Pattern.compile("^\\s*\\[(.*)\\]\\s*$");
 
+    private static final PictureUrlRegistry pictureUrlRegistry = new PictureUrlRegistry();
+    
     private final SettingsFile picturesFile;
     
     private Iterable<Biometric> biometrics = newArrayList();
@@ -85,7 +88,7 @@ public final class RecordedKnownOffenders implements KnownOffendersDirectory, Re
                     throw new IllegalStateException();
                 }
                 
-                final String pictureUrl = getPictureUrl(matcher);
+                final String pictureUrl = getPictureUrl(matcher.group(1));
                 final Iterable<String> fingerprints = filter(skip(data, 1), notBlank());
                 final String name = getFirst(fingerprints, pictureUrl);
                 return new Biometric(new Sponsor(name, pictureUrl), fingerprints);
@@ -101,13 +104,7 @@ public final class RecordedKnownOffenders implements KnownOffendersDirectory, Re
         };
     }
 
-    private static String getPictureUrl(final Matcher matcher) {
-        String image = matcher.group(1);
-        if (image.startsWith("gravatar:")) {
-            String email = image.substring("gravatar:".length());
-            return new Gravatar().getUrl(email);
-        } else {
-            return "/pictures/" + image;
-        }
+    private static String getPictureUrl(final String image) {
+      return pictureUrlRegistry.getPictureUrl(image);
     }
 }

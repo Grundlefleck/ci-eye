@@ -5,10 +5,10 @@ import com.google.gson.JsonElement;
 public interface Contact {
 
     <T> T makeJsonRestCall(String url, Class<T> type);
-    
+
     JsonElement makeJsonRestCall(String url);
 
-    void performBasicLogin(String loginUrl);
+    boolean privileged();
 
     void doPost(String url);
 

@@ -92,7 +92,8 @@ ORG.NETMELODY.CIEYE.newTargetWidget = function(targetJson) {
         sponsorDiv = $("<div></div>").addClass("sponsors"),
         buildsDiv = $("<div></div>"),
         sponsorMugshots = {},
-        displayedMugshots = {};
+        displayedMugshots = {},
+        markedOn = 0;
     
     function sortedSponsors(unsortedSponsors) {
         return unsortedSponsors.sort(function(a, b) {
@@ -121,6 +122,7 @@ ORG.NETMELODY.CIEYE.newTargetWidget = function(targetJson) {
             buildsDiv.append(ORG.NETMELODY.CIEYE.newBuildWidget(buildJson).getContent());
         });
 
+        targetDiv.toggleClass("marked", (new Date() - markedOn) < 12000);
         targetDiv.toggleClass("building", newTargetJson.builds.length !== 0);
         
         if (newTargetJson.builds.length === 0 && newTargetJson.status === "GREEN") {
@@ -153,7 +155,11 @@ ORG.NETMELODY.CIEYE.newTargetWidget = function(targetJson) {
     }
     
     function markAs(note) {
-        return function() { $.post("addNote", { "id": targetJson.id, "note": note }); };
+        return function() {
+            $.post("addNote", { "id": targetJson.id, "note": note });
+            markedOn = new Date() - 1;
+            targetDiv.addClass("marked");
+        };
     }
     
     function doh() {
@@ -268,6 +274,21 @@ ORG.NETMELODY.CIEYE.newRadiatorWidget = function() {
         $.post("doh", { "active": false });
     }
 
+    function isAllGreen(targetsJson) {
+        if (targetsJson.length === 0) {
+            return false;
+        }
+        
+        var result = true;
+        $.each(targetsJson, function(index, targetJson) {
+            if (targetJson.builds.length !== 0 || (targetJson.status !== "GREEN" && targetJson.status !== "DISABLED")) {
+                result = false;
+                return false;
+            }
+        });
+        return result;
+    }
+    
     function updateFrom(targetGroupJson) {
         var targets = targetGroupJson.targets.sort(targetComparator),
             deadTargetWidgets = $.extend({}, targetWidgets);
@@ -293,7 +314,7 @@ ORG.NETMELODY.CIEYE.newRadiatorWidget = function() {
             delete targetWidgets[index];
         });
         
-        if (radiatorDiv.children().length >= 0 && radiatorDiv.children().filter("div:visible").length === 0) {
+        if (isAllGreen(targets) && !targetGroupJson.dohGroup) {
             allGreenImg.width("100%");
             allGreenImg.height("100%");
             allGreenImg.show();
@@ -320,6 +341,7 @@ ORG.NETMELODY.CIEYE.newRadiatorWidget = function() {
     radiatorDiv.append(dohAudio);
     radiatorDiv.append(allGreenImg);
     
+    allGreenImg.mousemove(function() { allGreenImg.hide(); });
     $.getJSON("/sponsor.json", { "fingerprint": "all-green" }, function(sponsorJson) {
         if (sponsorJson) {
             allGreenImg.attr({ "src": sponsorJson.picture, "title": sponsorJson.name });

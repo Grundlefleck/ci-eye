@@ -1,3 +1,27 @@
+## Release 0.4.0
+  * Support specification of username/password for CI servers without guest access
+  * Lots of extra documentation added to the Wiki
+  * Failing TeamCity build types that are assigned and under investigation radiate as such
+  * Fix bug with marking builds as fixed in TeamCity
+  * Give immediate feedback to the user when marking a build
+  * Report a failure when any component of a view is providing no build data
+  * TeamCity build targets that have not yet build should report an 'unknown' status
+  * Improve scanning of builds on start-up
+
+[Full changelog](https://github.com/netmelody/ci-eye/compare/0.3.2...0.4.0)
+
+## Release 0.3.2
+  * Support Gravatar hosted pictures (thanks to Grundlefleck)
+  * Play woohoo when doh is over (thanks to Grundlefleck)
+  * Fix bug causing all-green squirrel to show when there are no builds at all
+  * Display all-green squirrel even in radiator mode
+  * Do not log errors if api.github.com is not accessible
+  * Log to file by default
+  * Fix bug with robustness of percentage instantiation
+  * Upgrade guava to 12.0.1; hamcrest to 1.3; apache http components and commons.io
+
+[Full changelog](https://github.com/netmelody/ci-eye/compare/0.3.1...0.3.2)
+
 ## Release 0.3.1
   * Upgrade check for new versions to use GitHub v3 API
   * Fix bug that caused potential aggressive replacement of template pictures on restart

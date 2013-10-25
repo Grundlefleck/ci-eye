@@ -1,8 +1,7 @@
 package org.netmelody.cieye.server.response.test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -15,12 +14,14 @@ import org.netmelody.cieye.server.PictureFetcher;
 import org.netmelody.cieye.server.response.CiEyeResourceEngine;
 import org.netmelody.cieye.server.response.RequestOriginTracker;
 import org.netmelody.cieye.server.response.resource.CiEyeResource;
-import org.netmelody.cieye.server.response.resource.DohHandler;
-import org.netmelody.cieye.server.response.resource.NotFoundResource;
-import org.netmelody.cieye.server.response.resource.RedirectResource;
-import org.netmelody.cieye.server.response.resource.TargetNotationHandler;
+import org.simpleframework.http.Request;
+import org.simpleframework.http.Response;
 import org.simpleframework.http.parse.AddressParser;
 import org.simpleframework.http.resource.Resource;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 public final class CiEyeResourceEngineTest {
 
@@ -43,9 +44,19 @@ public final class CiEyeResourceEngineTest {
     }
     
     @Test public void
-    indicatesResourcesThatAreNotFound() {
+    indicatesResourcesThatAreNotFound() throws IOException {
         final Resource resource = engine.resolve(new AddressParser("http://ci-eye/sausage"));
-        assertThat(resource, is(instanceOf(NotFoundResource.class)));
+        final Request request = context.mock(Request.class);
+        final Response response = context.mock(Response.class);
+        
+        context.checking(new Expectations() {{
+            oneOf(response).setCode(404);
+            allowing(response).getOutputStream(); will(returnValue(new ByteArrayOutputStream()));
+            ignoring(response);
+        }});
+        
+        resource.handle(request, response);
+        context.assertIsSatisfied();
     }
     
     @Test public void
@@ -77,7 +88,7 @@ public final class CiEyeResourceEngineTest {
         final Resource resource = engine.resolve(new AddressParser("http://ci-eye/pictures/myMugshot.png"));
         assertThat(resource, is(instanceOf(CiEyeResource.class)));
     }
-    
+
     @Test public void
     resolvesLandscapeResources() {
         final Resource resource = engine.resolve(new AddressParser("http://ci-eye/landscapes/myLandscape/"));
@@ -85,9 +96,19 @@ public final class CiEyeResourceEngineTest {
     }
 
     @Test public void
-    redirectsLandscapeResourcesWithoutTrailingSlash() {
+    redirectsLandscapeResourcesWithoutTrailingSlash() throws IOException {
         final Resource resource = engine.resolve(new AddressParser("http://ci-eye/landscapes/myLandscape"));
-        assertThat(resource, is(instanceOf(RedirectResource.class)));
+        final Request request = context.mock(Request.class);
+        final Response response = context.mock(Response.class);
+        
+        context.checking(new Expectations() {{
+            oneOf(response).setCode(301);
+            allowing(response).getOutputStream(); will(returnValue(new ByteArrayOutputStream()));
+            ignoring(response);
+        }});
+        
+        resource.handle(request, response);
+        context.assertIsSatisfied();
     }
 
     @Test public void
@@ -105,7 +126,7 @@ public final class CiEyeResourceEngineTest {
     @Test public void
     handlesAddNoteRequest() {
         final Resource resource = engine.resolve(new AddressParser("http://ci-eye/landscapes/myLandscape/addNote"));
-        assertThat(resource, is(instanceOf(TargetNotationHandler.class)));
+        assertThat(resource, is(instanceOf(CiEyeResource.class)));
     }
     
     @Test public void
@@ -117,6 +138,6 @@ public final class CiEyeResourceEngineTest {
         final Resource resource = engine.resolve(new AddressParser("http://ci-eye/landscapes/myLandscape/doh"));
         
         context.assertIsSatisfied();
-        assertThat(resource, is(instanceOf(DohHandler.class)));
+        assertThat(resource, is(instanceOf(CiEyeResource.class)));
     }
 }
